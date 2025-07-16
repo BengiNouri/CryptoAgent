@@ -1,0 +1,18 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+
+# venv / Poetry
+.venv/
+.env
+*.lock
+
+# Streamlit / Chroma / db
+chroma/
+db_data/
+
+# IDEs / OS
+.DS_Store
+.vscode/
+.idea/

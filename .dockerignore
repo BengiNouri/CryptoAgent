@@ -1,0 +1,33 @@
+# Bytecode
+__pycache__/
+*.pyc
+
+# Poetry virtualenvs & caches
+.venv/
+venv/
+env/
+poetry.lock        # lockfile is already copied separately by Dockerfile
+.pytest_cache/
+
+# Git metadata
+.git/
+.gitignore
+
+# Local settings & logs
+.env
+.env.*             # any other dotenv files
+agent.log
+
+# Chroma index (built at runtime)
+chroma/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+# .dockerignore
+__pycache__/
+*.pyc
+.env
+chroma/         # your local Chroma index
+db_data/        # local volume mount
+*.log

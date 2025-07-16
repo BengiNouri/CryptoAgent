@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "crypto-insight-agent"
+version = "0.1.0"
+description = "RAG + agent showcase using the 12-Factor Agents pattern"
+authors = ["Benjamin Sajad Nouri <benjamin_nouri@outlook.dk>"]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+# REVERT to 0.1.x series where Chroma is built in
+langchain        = "0.1.16"
+langchain-core   = "0.1.50"
+langchain-openai = "0.0.8"
+
+openai           = "^1.30.0"
+chromadb         = "^0.4.22"
+sqlalchemy       = "^2.0.30"
+psycopg2-binary  = "^2.9.9"
+streamlit        = "^1.35.0"
+pandas           = "^2.2.2"
+httpx            = "^0.27.0"
+python-dotenv    = "^1.0"
+matplotlib = "^3.10.3"
+
+[tool.poetry.group.dev.dependencies]
+pytest           = "^8.2.0"
