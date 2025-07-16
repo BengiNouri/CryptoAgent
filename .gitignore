@@ -6,6 +6,7 @@ __pycache__/
 # venv / Poetry
 .venv/
 .env
+.env.local
 *.lock
 
 # Streamlit / Chroma / db

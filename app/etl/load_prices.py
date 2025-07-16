@@ -4,7 +4,7 @@ import time
 import httpx
 import pandas as pd
 from sqlalchemy import text
-from app.db import engine
+from app.db import engine, init_db
 
 COINS = ["bitcoin","ethereum","solana"]  # whatever you like
 API = "https://api.coingecko.com/api/v3/coins/{id}/market_chart"
@@ -20,6 +20,9 @@ def fetch_history(coin_id: str, days: int = 30) -> pd.DataFrame:
     return df[["coin_id","symbol","date","price"]]
 
 def load_prices(days: int = 30):
+    # Ensure database is initialized before loading data
+    init_db()
+    
     for coin in COINS:
         df = fetch_history(coin, days=days)
         with engine.begin() as conn:
