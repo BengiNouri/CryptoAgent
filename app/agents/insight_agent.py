@@ -6,11 +6,30 @@ from typing import Any, Union
 from langchain_openai import ChatOpenAI
 from app.context.embedding import get_retriever
 from app.agents.schema import ALLOWED_FUNCTIONS
-from .tools import get_top_movers, plot_price
+from .tools import get_top_movers, plot_price, forecast_price
 from app.prompts.insight_prompt import INSIGHT_PROMPT as SYSTEM_PROMPT
 
-# Initialize the LLM client
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+# Model fallback configuration
+MODELS = [
+    "gpt-4o-mini",      # Primary choice - fastest and cheapest GPT-4 class
+    "gpt-3.5-turbo",    # Fallback 1 - reliable and fast
+    "gpt-4o",           # Fallback 2 - most capable but slower
+]
+
+def get_llm_with_fallback():
+    """Try models in order until one works"""
+    for model in MODELS:
+        try:
+            llm = ChatOpenAI(model=model, temperature=0, timeout=10)
+            # Test the model with a simple call
+            test_response = llm.invoke("Test")
+            return llm, model
+        except Exception as e:
+            print(f"Model {model} failed: {str(e)}")
+            continue
+    
+    # If all models fail, return the first one and let it error
+    return ChatOpenAI(model=MODELS[0], temperature=0), MODELS[0]
 
 def _parse_call(raw: str) -> Union[dict[str, Any], None]:
     try:
@@ -42,18 +61,35 @@ def ask(question: str) -> Union[dict[str, Any], str]:
     logger.addHandler(fh)
     logger.setLevel(logging.INFO)
 
-    # ─── 2. Retrieve context ───────────────────────────────────────────────────────
+    # ─── 2. Get LLM with fallback ──────────────────────────────────────────────────
+    llm, model_used = get_llm_with_fallback()
+    logger.info(f"Using model: {model_used}")
+
+    # ─── 3. Retrieve context ───────────────────────────────────────────────────────
     retriever = get_retriever(k=4)
     docs = retriever.get_relevant_documents(question)
     rag_block = "\n\n".join(f"- {d.page_content}" for d in docs)
 
-    # ─── 3. Build & call LLM ──────────────────────────────────────────────────────
+    # ─── 4. Build & call LLM ──────────────────────────────────────────────────────
     prompt = (
         SYSTEM_PROMPT
         + f"\n\n---\nContext (top {len(docs)} snippets):\n{rag_block}\n\n"
         + f"User: {question}"
     )
-    resp = llm.invoke(prompt).content.strip()
+    
+    try:
+        resp = llm.invoke(prompt).content.strip()
+    except Exception as e:
+        logger.error(f"LLM call failed with {model_used}: {str(e)}")
+        # Try one more fallback
+        try:
+            fallback_llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+            resp = fallback_llm.invoke(prompt).content.strip()
+            model_used = "gpt-3.5-turbo (emergency fallback)"
+        except Exception as e2:
+            logger.error(f"All models failed: {str(e2)}")
+            return f"Sorry, I'm experiencing technical difficulties. Please try again in a moment."
+    
     call = _parse_call(resp)
 
     # ─── 4. Emit JSON‐line ─────────────────────────────────────────────────────────

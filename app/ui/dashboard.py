@@ -98,7 +98,7 @@ def show_dashboard():
         st.error(f"Error loading dashboard data: {e}")
 
 def show_analytics():
-    """Show advanced analytics"""
+    """Show advanced analytics with ML forecasting"""
     
     st.markdown("### 🔍 Advanced Analytics")
     
@@ -148,6 +148,123 @@ def show_analytics():
                     labels={'volatility': 'Volatility (USD)', 'symbol': 'Cryptocurrency'}
                 )
                 st.plotly_chart(fig_vol, use_container_width=True)
+        
+        # ML Forecasting Section
+        st.markdown("---")
+        st.markdown("### 🤖 Machine Learning Forecasting")
+        
+        # Coin selection for forecasting
+        coin_options = ['bitcoin', 'ethereum', 'solana']
+        selected_coin = st.selectbox("Select cryptocurrency for ML analysis:", coin_options)
+        
+        if st.button("Generate ML Forecast", type="primary"):
+            with st.spinner("Training ML models and generating forecasts..."):
+                try:
+                    # Get data for selected coin
+                    forecast_query = text("""
+                        SELECT coin_id, symbol, price, date
+                        FROM prices 
+                        WHERE coin_id = :coin_id
+                        ORDER BY date
+                    """)
+                    
+                    forecast_df = pd.read_sql(forecast_query, conn, params={"coin_id": selected_coin})
+                    
+                    if not forecast_df.empty:
+                        # Import and use ML forecasting
+                        from app.ml.forecasting import get_ml_insights
+                        
+                        insights = get_ml_insights(forecast_df, selected_coin.upper())
+                        
+                        # Generate forecast dates
+                        last_date = pd.to_datetime(forecast_df['date'].iloc[-1])
+                        forecast_dates = [last_date + timedelta(days=i+1) for i in range(7)]
+                        insights['price_forecast']['forecast_dates'] = forecast_dates
+                        
+                        # Display results
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            st.markdown("#### 📈 Price Forecast (7 days)")
+                            if 'price_forecast' in insights and 'forecasts' in insights['price_forecast']:
+                                forecasts = insights['price_forecast']['forecasts']
+                                current_price = forecast_df['price'].iloc[-1]
+                                
+                                for i, forecast in enumerate(forecasts[:3], 1):
+                                    change = ((forecast - current_price) / current_price) * 100
+                                    st.metric(
+                                        f"Day +{i}",
+                                        f"${forecast:.2f}",
+                                        f"{change:+.2f}%"
+                                    )
+                        
+                        with col2:
+                            st.markdown("#### 🎯 Model Performance")
+                            if 'model_performance' in insights:
+                                for model_name, metrics in insights['model_performance'].items():
+                                    st.write(f"**{model_name.title()}**")
+                                    st.write(f"MAE: ${metrics['mae']:.2f}")
+                                    st.write(f"RMSE: ${metrics['rmse']:.2f}")
+                        
+                        with col3:
+                            st.markdown("#### 📊 Trend Analysis")
+                            if 'trend_analysis' in insights:
+                                trend = insights['trend_analysis']
+                                st.metric(
+                                    "30-day Trend",
+                                    trend.get('trend_direction', 'N/A').title(),
+                                    f"{trend.get('price_change_30d', 0):.2f}%"
+                                )
+                                st.write(f"**RSI:** {trend.get('rsi', 0):.1f} ({trend.get('rsi_signal', 'N/A')})")
+                                st.write(f"**Support:** ${trend.get('support_level', 0):.2f}")
+                                st.write(f"**Resistance:** ${trend.get('resistance_level', 0):.2f}")
+                        
+                        # Forecast chart
+                        if 'price_forecast' in insights and 'forecasts' in insights['price_forecast']:
+                            st.markdown("#### 📈 Price Forecast Visualization")
+                            
+                            # Prepare data for plotting
+                            historical_dates = pd.to_datetime(forecast_df['date'].tail(30))
+                            historical_prices = forecast_df['price'].tail(30)
+                            
+                            forecast_dates = pd.to_datetime(insights['price_forecast']['forecast_dates'])
+                            forecast_prices = insights['price_forecast']['forecasts']
+                            
+                            # Create forecast chart
+                            fig_forecast = go.Figure()
+                            
+                            # Historical data
+                            fig_forecast.add_trace(go.Scatter(
+                                x=historical_dates,
+                                y=historical_prices,
+                                mode='lines',
+                                name='Historical Price',
+                                line=dict(color='blue')
+                            ))
+                            
+                            # Forecast data
+                            fig_forecast.add_trace(go.Scatter(
+                                x=forecast_dates,
+                                y=forecast_prices,
+                                mode='lines+markers',
+                                name='ML Forecast',
+                                line=dict(color='red', dash='dash')
+                            ))
+                            
+                            fig_forecast.update_layout(
+                                title=f"{selected_coin.upper()} Price Forecast",
+                                xaxis_title="Date",
+                                yaxis_title="Price (USD)",
+                                height=400
+                            )
+                            
+                            st.plotly_chart(fig_forecast, use_container_width=True)
+                    
+                    else:
+                        st.warning(f"No data available for {selected_coin}")
+                        
+                except Exception as e:
+                    st.error(f"ML forecasting error: {str(e)}")
         
     except Exception as e:
         st.error(f"Error loading analytics: {e}")

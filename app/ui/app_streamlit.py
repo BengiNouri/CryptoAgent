@@ -22,43 +22,80 @@ init_db()
 st.set_page_config(
     page_title="Crypto Insight Agent",
     page_icon="🚀",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
-# Custom CSS for better styling
+# Custom CSS for clean dark theme
 st.markdown("""
 <style>
-    .main-header {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 10px;
-        margin-bottom: 2rem;
+    /* Hide Streamlit branding */
+    .stDeployButton {display:none;}
+    footer {visibility: hidden;}
+    .stDecoration {display:none;}
+    
+    /* Dark theme */
+    .stApp {
+        background-color: #0f0f0f;
+        color: #ffffff;
+    }
+    
+    /* Welcome message styling */
+    .welcome-title {
         text-align: center;
-        color: white;
+        font-size: 2.5rem;
+        font-weight: 300;
+        margin: 3rem 0;
+        color: #ffffff;
     }
-    .chat-message {
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 1rem 0;
-        border-left: 4px solid #667eea;
-        background-color: #f8f9fa;
-    }
+    
+    /* Chat message styling */
     .user-message {
-        background-color: #e3f2fd;
-        border-left-color: #2196f3;
+        background-color: #2a2a2a;
+        padding: 1rem 1.5rem;
+        border-radius: 18px;
+        margin: 1rem 0;
+        margin-left: 20%;
     }
+    
     .agent-message {
-        background-color: #f3e5f5;
-        border-left-color: #9c27b0;
+        background-color: #1a1a1a;
+        padding: 1rem 1.5rem;
+        border-radius: 18px;
+        margin: 1rem 0;
+        margin-right: 20%;
+        border-left: 3px solid #667eea;
     }
+    
+    /* Example cards */
+    .example-card {
+        background-color: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        transition: border-color 0.2s;
+    }
+    
+    .example-card:hover {
+        border-color: #667eea;
+    }
+    
+    /* Input styling */
+    .stTextInput > div > div > input {
+        background-color: #2a2a2a !important;
+        border: 1px solid #404040 !important;
+        border-radius: 25px !important;
+        color: #ffffff !important;
+        padding: 0.75rem 1.5rem !important;
+    }
+    
     .stButton > button {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        border-radius: 20px;
-        padding: 0.5rem 2rem;
-        font-weight: bold;
+        background-color: #667eea !important;
+        color: white !important;
+        border-radius: 20px !important;
+        border: none !important;
+        padding: 0.5rem 1.5rem !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -147,14 +184,6 @@ with st.sidebar:
     show_examples = st.checkbox("Show Example Queries", value=st.session_state.show_examples)
     st.session_state.show_examples = show_examples
 
-# Main content
-st.markdown("""
-<div class="main-header">
-    <h1>🚀 Crypto Insight Agent</h1>
-    <p>Your AI-powered cryptocurrency analysis assistant</p>
-</div>
-""", unsafe_allow_html=True)
-
 # Page routing based on selection
 if page == "📊 Dashboard":
     if show_dashboard:
@@ -167,124 +196,140 @@ elif page == "🔍 Analytics":
     else:
         st.error("Analytics module not available")
 else:
-    # Default to Chat Agent page
-    # Example queries section
-    if st.session_state.show_examples and not st.session_state.history:
-        st.markdown("### 💡 Try These Example Queries:")
+    # Chat Agent page - Clean and Simple
+    
+    # Show welcome message if no chat history
+    if not st.session_state.history:
+        st.markdown('<h1 class="welcome-title">Ready when you are.</h1>', unsafe_allow_html=True)
         
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown("""
-            **📊 Market Analysis**
-            - "Show me the top 5 movers over 7 days"
-            - "What are the biggest gainers this week?"
-            - "Compare Bitcoin and Ethereum performance"
-            """)
-        
-        with col2:
-            st.markdown("""
-            **📈 Price Charts**
-            - "Plot Bitcoin price for 30 days"
-            - "Show me Ethereum's price trend"
-            - "Chart Solana's performance this month"
-            """)
-        
-        with col3:
-            st.markdown("""
-            **🔍 Insights**
-            - "Analyze the crypto market trends"
-            - "What's driving Bitcoin's price?"
-            - "Give me investment insights"
-            """)
-
-    # Chat interface
-    st.markdown("### 💬 Chat with the Agent")
-
-    # Chat input
-    with st.form("chat_form", clear_on_submit=True):
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            user_input = st.text_input("Ask me anything about crypto...", placeholder="e.g., Show me the top movers this week")
-        with col2:
-            submit = st.form_submit_button("Send 🚀", use_container_width=True)
-
-    # Handle form submission
-    if submit and user_input:
-        # Add user message
-        st.session_state.history.append((user_input, None))
-        
-        # Show loading state
-        with st.spinner("🤖 Agent is thinking..."):
-            try:
-                response = ask(user_input)
-                st.session_state.history[-1] = (user_input, response)
-            except Exception as e:
-                st.session_state.history[-1] = (user_input, f"❌ Error: {str(e)}")
-        
-        st.rerun()
-
-    # Display chat history
-    if st.session_state.history:
-        st.markdown("---")
-        
-        for i, (user_msg, bot_msg) in enumerate(reversed(st.session_state.history)):
-            # User message
-            st.markdown(f"""
-            <div class="chat-message user-message">
-                <strong>👤 You:</strong><br>
-                {user_msg}
-            </div>
-            """, unsafe_allow_html=True)
+        # Example queries section
+        if st.session_state.show_examples:
+            col1, col2, col3 = st.columns(3)
             
-            # Agent response
-            if bot_msg:
-                if isinstance(bot_msg, dict):
-                    # Handle tool calls
-                    st.markdown(f"""
-                    <div class="chat-message agent-message">
-                        <strong>🤖 Agent:</strong><br>
-                        Executing function: <code>{bot_msg.get('function', 'unknown')}</code>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Execute the tool and show results
-                    try:
-                        if bot_msg.get('function') == 'get_top_movers':
-                            params = bot_msg.get('parameters', {})
-                            result = get_top_movers(
-                                period=params.get('period', '7d'),
-                                limit=params.get('limit', 5)
-                            )
-                            st.markdown(result)
-                        elif bot_msg.get('function') == 'plot_price':
-                            params = bot_msg.get('parameters', {})
-                            result = plot_price(
-                                coin=params.get('coin', 'BTC'),
-                                days=params.get('days', 30)
-                            )
-                            st.markdown(result)
-                    except Exception as e:
-                        st.error(f"Error executing tool: {e}")
-                else:
-                    # Handle text responses
-                    st.markdown(f"""
-                    <div class="chat-message agent-message">
-                        <strong>🤖 Agent:</strong><br>
-                        {bot_msg}
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
-                # Loading state
-                st.markdown(f"""
-                <div class="chat-message agent-message">
-                    <strong>🤖 Agent:</strong><br>
-                    <em>Thinking... 🤔</em>
+            with col1:
+                st.markdown("""
+                <div class="example-card">
+                    <h4>📊 Market Analysis</h4>
+                    <p>• "Show me the top 5 movers over 7 days"<br>
+                    • "What are the biggest gainers this week?"<br>
+                    • "Compare Bitcoin and Ethereum performance"</p>
                 </div>
                 """, unsafe_allow_html=True)
             
-            if i < len(st.session_state.history) - 1:
-                st.markdown("---")
+            with col2:
+                st.markdown("""
+                <div class="example-card">
+                    <h4>📈 Price Charts</h4>
+                    <p>• "Plot Bitcoin price for 30 days"<br>
+                    • "Show me Ethereum's price trend"<br>
+                    • "Chart Solana's performance this month"</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col3:
+                st.markdown("""
+                <div class="example-card">
+                    <h4>🔍 Insights</h4>
+                    <p>• "Analyze the crypto market trends"<br>
+                    • "What's driving Bitcoin's price?"<br>
+                    • "Give me investment insights"</p>
+                </div>
+                """, unsafe_allow_html=True)
+    
+    # Display chat history
+    for i, (user_msg, bot_msg) in enumerate(st.session_state.history):
+        # User message
+        st.markdown(f"""
+        <div class="user-message">
+            <strong>You:</strong><br>
+            {user_msg}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Agent response
+        if bot_msg:
+            if isinstance(bot_msg, dict):
+                # Handle tool calls
+                st.markdown(f"""
+                <div class="agent-message">
+                    <strong>🤖 Crypto Insight Agent:</strong><br>
+                    Let me get that information for you using {bot_msg.get('function', 'tools')}...
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Execute the tool and show results
+                try:
+                    if bot_msg.get('function') == 'get_top_movers':
+                        params = bot_msg.get('parameters', {})
+                        result = get_top_movers(
+                            period=params.get('period', '7d'),
+                            limit=params.get('limit', 5)
+                        )
+                        st.markdown(f"""
+                        <div class="agent-message">
+                            <strong>📊 Market Analysis Results:</strong><br>
+                            {result}
+                        </div>
+                        """, unsafe_allow_html=True)
+                    elif bot_msg.get('function') == 'plot_price':
+                        params = bot_msg.get('parameters', {})
+                        result = plot_price(
+                            coin=params.get('coin', 'bitcoin'),
+                            days=params.get('days', 30)
+                        )
+                        st.markdown(f"""
+                        <div class="agent-message">
+                            <strong>📈 Price Chart:</strong><br>
+                            {result}
+                        </div>
+                        """, unsafe_allow_html=True)
+                except Exception as e:
+                    st.markdown(f"""
+                    <div class="agent-message">
+                        <strong>❌ Error:</strong><br>
+                        Sorry, I encountered an issue: {str(e)}
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                # Handle text responses
+                st.markdown(f"""
+                <div class="agent-message">
+                    <strong>🤖 Crypto Insight Agent:</strong><br>
+                    {bot_msg}
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            # Loading state
+            st.markdown("""
+            <div class="agent-message">
+                <strong>🤖 Crypto Insight Agent:</strong><br>
+                <em>Thinking... 🤔</em>
+            </div>
+            """, unsafe_allow_html=True)
+
+# Chat input at the bottom
+st.markdown("---")
+with st.form("chat_form", clear_on_submit=True):
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        user_input = st.text_input("", placeholder="Ask me anything about crypto...", label_visibility="collapsed")
+    with col2:
+        submit = st.form_submit_button("Send 🚀", use_container_width=True)
+
+# Handle form submission
+if submit and user_input:
+    # Add user message
+    st.session_state.history.append((user_input, None))
+    
+    # Show loading state
+    with st.spinner("🤖 Agent is thinking..."):
+        try:
+            response = ask(user_input)
+            st.session_state.history[-1] = (user_input, response)
+        except Exception as e:
+            st.session_state.history[-1] = (user_input, f"❌ Error: {str(e)}")
+    
+    st.rerun()
 
 # Footer
 st.markdown("---")

@@ -12,7 +12,22 @@ API = "https://api.coingecko.com/api/v3/coins/{id}/market_chart"
 def fetch_history(coin_id: str, days: int = 30) -> pd.DataFrame:
     params = {"vs_currency": "usd", "days": days}
     resp = httpx.get(API.format(id=coin_id), params=params, timeout=10)
-    data = resp.json()["prices"]  # list of [timestamp, price]
+    resp.raise_for_status()  # Raise an exception for bad status codes
+    
+    json_data = resp.json()
+    print(f"API Response keys for {coin_id}: {list(json_data.keys())}")
+    
+    # Check if 'prices' key exists, if not print the response for debugging
+    if "prices" not in json_data:
+        print(f"Error: 'prices' key not found in response for {coin_id}")
+        print(f"Response: {json_data}")
+        # Try alternative approach - sometimes the API returns different structure
+        if "error" in json_data:
+            raise Exception(f"CoinGecko API Error: {json_data['error']}")
+        else:
+            raise KeyError(f"Expected 'prices' key not found in API response for {coin_id}")
+    
+    data = json_data["prices"]  # list of [timestamp, price]
     df = pd.DataFrame(data, columns=["ts","price"])
     df["date"] = pd.to_datetime(df["ts"], unit="ms").dt.date
     df["coin_id"] = coin_id
